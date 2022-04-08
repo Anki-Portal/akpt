@@ -1,5 +1,5 @@
 macro_rules! repeat_over_modules {
-    ($function:ident for $( $module:path ),+) => {
+    ($function:ident in $( $module:path ),+) => {
         {
             let mut results = Vec::new();
     
