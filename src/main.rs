@@ -1,4 +1,4 @@
-use std::{path::{Path, PathBuf}, fs};
+use std::{fs, path::PathBuf, process::exit};
 
 use clap::{Arg, Command};
 use commands::*;
@@ -9,8 +9,10 @@ mod commands {
     pub mod init;
 }
 
-mod types {
-    pub mod config;
+mod config;
+
+mod tools {
+    pub mod workspace;
 }
 
 #[macro_use]
@@ -22,29 +24,13 @@ fn main() {
     let matches = Command::new("AKPT")
         .about("CLI tool for communication with Anki")
         .author("Ludwig Granstedt <ludwiggranstedt@gmail.com>")
-        .arg(
-            Arg::new("path")
-                .short('p')
-                .long("path")
-                .takes_value(true)
-                .value_name("PATH")
-                .default_value("./"),
-        )
         .subcommands(commands)
         .get_matches();
 
-    let path_value = matches.value_of("PATH").unwrap();
-    let mut path = PathBuf::from(path_value);
-
-    if path.is_relative() {
-        let old_path = path.clone();
-        path = fs::canonicalize(old_path).unwrap();
-    }
-
     let result = match matches.subcommand() {
-        Some(("get-model", matches)) => get_model::invoke(matches),
-        Some(("create-model", matches)) => create_model::invoke(matches),
-        Some(("init", matches)) => init::invoke(matches, &path),
+        Some((get_model::COMMAND_NAME, matches)) => get_model::invoke(matches),
+        Some((create_model::COMMAND_NAME, matches)) => create_model::invoke(matches),
+        Some((init::COMMAND_NAME, matches)) => init::invoke(matches),
         _ => Ok(()),
     };
 
@@ -52,6 +38,7 @@ fn main() {
         Ok(_) => {}
         Err(error) => {
             println!("{}", error);
+            exit(1);
         }
     }
 }

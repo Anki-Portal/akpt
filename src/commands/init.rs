@@ -1,31 +1,45 @@
-use std::{env, path::{Path, PathBuf}, fs::File, io::Write};
+use std::{fs, path::PathBuf};
 
 use clap::{Arg, ArgMatches, Command};
 
-use crate::types::config::Config;
+use crate::{
+    config::{Config, ConfigData}
+};
+
+pub const COMMAND_NAME: &str = "init";
 
 pub fn generate_command<'a>() -> Command<'a> {
-    Command::new("init").about("Initialize AKPT project").arg(
-        Arg::new("version")
-            .help("Specifies version of the AnkiPortal API to target")
-            .short('v')
-            .long("version")
-            .takes_value(true)
-            .value_name("VERSION")
-            .default_value("6"),
-    )
+    Command::new(COMMAND_NAME)
+        .about("Initialize AKPT project")
+        .args([
+            Arg::new("version")
+                .help("Version of the AnkiPortal API to target")
+                .short('v')
+                .long("version")
+                .takes_value(true)
+                .value_name("VERSION")
+                .default_value("6"),
+            Arg::new("port")
+                .help("Port to connect with Anki through")
+                .short('p')
+                .long("port")
+                .takes_value(true)
+                .value_name("PORT")
+                .default_value("8765"),
+        ])
 }
 
-pub fn invoke(matches: &ArgMatches, path: &PathBuf) -> Result<(), String> {
+pub fn invoke(matches: &ArgMatches) -> Result<(), String> {
+    let path = fs::canonicalize(PathBuf::from("./")).unwrap();
 
     // Check that location is a directory
     if !path.is_dir() {
         return Err(format!("{} is not a directory", path.display()));
-    } 
+    }
 
     // Check that location isn't already an AKPT workspace
-    if path.join("akptconfig.json").exists() {
-        return Err("Directory is already an AKPT workspace".to_string());
+    if let Some(_config) = Config::find_config(path.as_path()) {
+        return Err(format!("{} is already an AKPT workspace", path.display()));
     }
 
     // Get API version from args
@@ -35,13 +49,22 @@ pub fn invoke(matches: &ArgMatches, path: &PathBuf) -> Result<(), String> {
         return Err("Version must be a number".to_string());
     };
 
+    // Get port from args
+    let port = if let Ok(port) = matches.value_of("port").unwrap().parse::<u32>() {
+        port
+    } else {
+        return Err("Port must be a number".to_string());
+    };
+
     // Create config and write to file
-    let config = Config::new(version);
+    let config_data = ConfigData::new(version, port);
+    let config = Config::new(path.as_path(), config_data);
+    config.write()?;
 
-    let config_string = serde_json::to_string(&config).unwrap();
-
-    let mut config_file = File::create(path.join("akptconfig.json")).unwrap();
-    config_file.write_all(config_string.as_bytes()).unwrap();
-
+    // Create folders for models and notes
+    fs::create_dir(path.join("models")).map_err(|err| format!("{}", err))?;
+    fs::create_dir(path.join("notes")).map_err(|err| format!("{}", err))?;
+    
+    println!("Successfully initialized AKPT workspace");
     Ok(())
 }
