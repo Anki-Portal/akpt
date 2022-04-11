@@ -1,4 +1,4 @@
-use clap::{Command, Arg};
+use clap::{Command, Arg, ArgMatches};
 
 pub fn generate_command<'a>() -> Command<'a> {
     Command::new("create-model")
@@ -16,4 +16,8 @@ pub fn generate_command<'a>() -> Command<'a> {
             .long("cloze")
             .value_name("CLOZE")
     )   
+}
+
+pub fn invoke(matches: &ArgMatches) -> Result<(), String> {
+    Ok(())
 }

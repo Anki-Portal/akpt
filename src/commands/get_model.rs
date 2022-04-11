@@ -1,4 +1,4 @@
-use clap::{Arg, Command};
+use clap::{Arg, Command, ArgMatches};
 
 pub fn generate_command<'a>() -> Command<'a> {
     Command::new("get-model").about("Get model from Anki").arg(
@@ -12,6 +12,6 @@ pub fn generate_command<'a>() -> Command<'a> {
     )
 }
 
-pub fn get_model() {
-
+pub fn invoke(matches: &ArgMatches) -> Result<(), String> {
+    Ok(())
 }
