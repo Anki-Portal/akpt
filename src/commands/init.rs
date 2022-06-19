@@ -1,9 +1,10 @@
-use std::{fs, path::PathBuf};
+use std::{error::Error, fs, path::PathBuf};
 
 use clap::{Arg, ArgMatches, Command};
 
 use crate::{
-    config::{Config, ConfigData}
+    config::{Config, ConfigData},
+    error::CustomError,
 };
 
 pub const COMMAND_NAME: &str = "init";
@@ -29,31 +30,35 @@ pub fn generate_command<'a>() -> Command<'a> {
         ])
 }
 
-pub fn invoke(matches: &ArgMatches) -> Result<(), String> {
+pub fn invoke(matches: &ArgMatches) -> Result<(), Box<dyn Error>> {
     let path = fs::canonicalize(PathBuf::from("./")).unwrap();
 
     // Check that location is a directory
     if !path.is_dir() {
-        return Err(format!("{} is not a directory", path.display()));
+        let message = format!("{} is not a directory", path.display());
+
+        return Err(Box::new(CustomError::new(&message)));
     }
 
     // Check that location isn't already an AKPT workspace
-    if let Some(_config) = Config::find_config(path.as_path()) {
-        return Err(format!("{} is already an AKPT workspace", path.display()));
+    if let Some(_config) = Config::find_config_root(path.as_path()) {
+        let message = format!("{} is already an AKPT workspace", path.display());
+
+        return Err(Box::new(CustomError::new(&message)));
     }
 
     // Get API version from args
     let version = if let Ok(version) = matches.value_of("version").unwrap().parse::<u32>() {
         version
     } else {
-        return Err("Version must be a number".to_string());
+        return Err(Box::new(CustomError::new("Invalid API version")));
     };
 
     // Get port from args
     let port = if let Ok(port) = matches.value_of("port").unwrap().parse::<u32>() {
         port
     } else {
-        return Err("Port must be a number".to_string());
+        return Err(Box::new(CustomError::new("Invalid port")));
     };
 
     // Create config and write to file
@@ -64,7 +69,7 @@ pub fn invoke(matches: &ArgMatches) -> Result<(), String> {
     // Create folders for models and notes
     fs::create_dir(path.join("models")).map_err(|err| format!("{}", err))?;
     fs::create_dir(path.join("notes")).map_err(|err| format!("{}", err))?;
-    
+
     println!("Successfully initialized AKPT workspace");
     Ok(())
 }

@@ -1,3 +1,5 @@
+use std::error::Error;
+
 use clap::{Arg, ArgMatches, Command};
 
 pub const COMMAND_NAME: &str = "create-model";
@@ -23,6 +25,6 @@ pub fn generate_command<'a>() -> Command<'a> {
         )
 }
 
-pub fn invoke(_matches: &ArgMatches) -> Result<(), String> {
+pub fn invoke(_matches: &ArgMatches) -> Result<(), Box<dyn Error>> {
     Ok(())
 }

@@ -1,25 +1,29 @@
-use std::{fs, path::PathBuf, process::exit};
+use std::{process::exit, error::Error};
 
-use clap::{Arg, Command};
+use clap::{Command};
 use commands::*;
 
+
+#[macro_use]
+mod macros;
+
 mod commands {
-    pub mod create_model;
-    pub mod get_model;
+    pub mod get;
     pub mod init;
+    pub mod new;
 }
 
 mod config;
+mod error;
+mod request;
 
 mod tools {
     pub mod workspace;
 }
 
-#[macro_use]
-mod macros;
-
-fn main() {
-    let commands = repeat_over_modules!(generate_command in get_model, create_model, init);
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn Error>> {
+    let commands = repeat_over_modules!(generate_command in get, init, new);
 
     let matches = Command::new("AKPT")
         .about("CLI tool for communication with Anki")
@@ -27,18 +31,10 @@ fn main() {
         .subcommands(commands)
         .get_matches();
 
-    let result = match matches.subcommand() {
-        Some((get_model::COMMAND_NAME, matches)) => get_model::invoke(matches),
-        Some((create_model::COMMAND_NAME, matches)) => create_model::invoke(matches),
+    match matches.subcommand() {
+        Some((get::COMMAND_NAME, matches)) => get::invoke(matches).await,
         Some((init::COMMAND_NAME, matches)) => init::invoke(matches),
+        Some((new::COMMAND_NAME, matches)) => new::invoke(matches),
         _ => Ok(()),
-    };
-
-    match result {
-        Ok(_) => {}
-        Err(error) => {
-            println!("{}", error);
-            exit(1);
-        }
     }
 }

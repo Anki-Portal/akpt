@@ -1,10 +1,12 @@
 use std::{
-    fs::{File, self},
+    fs::{File},
     io::Write,
     path::{Path, PathBuf},
 };
 
 use serde::{Deserialize, Serialize};
+
+use crate::error::CustomError;
 
 use self::model::ModelConfig;
 
@@ -50,25 +52,23 @@ impl Config {
     /// * `path` - The path to the the config file.
     /// 
     pub fn read_config(path: &Path) -> Result<Config, String> {
-        let file = File::open(path).map_err(|err| format!("{}", err))?;
+        let file = File::open(path.join(CONFIG_FILE)).map_err(|err| format!("{}", err))?;
 
         let data: ConfigData = serde_json::from_reader(file).map_err(|err| format!("{}", err))?;
 
         Ok(Config { data, path: path.to_path_buf() })
     }
 
-    pub fn find_config(path: &Path) -> Option<PathBuf> {
-        for parent in path.ancestors() {
-            let config_path = parent.join(CONFIG_FILE);
-
-            if config_path.exists() {
-                return Some(config_path);
-            }
-        }
-
-        None
-    }
-
+    /// Searches all parent directories for a config file.
+    /// 
+    /// ## Arguments
+    /// 
+    /// * `path` - The path to the directory to start searching from.
+    /// 
+    /// ## Returns
+    /// 
+    /// The path to the directory where the config file is located.
+    /// 
     pub fn find_config_root(path: &Path) -> Option<PathBuf> {
         for parent in path.ancestors() {
             let config_path = parent.join(CONFIG_FILE);
@@ -79,6 +79,15 @@ impl Config {
         }
 
         None
+    }
+
+    /// Gets the path to the workspace folder
+    /// 
+    /// ## Returns
+    /// 
+    /// The path to the workspace folder.
+    pub fn get_path(&self) -> &Path {
+        &self.path
     }
 }
 
@@ -106,5 +115,59 @@ impl ConfigData {
         self.models.push(model);
 
         Ok(())
+    }
+
+    /// Gets the model config for the given model name.
+    /// 
+    /// ## Arguments
+    /// 
+    /// * `name` - The name of the model to get the config for.
+    /// 
+    /// ## Returns
+    /// 
+    /// Result resolving to the model config for the given model name.
+    pub fn get_model(&self, name: &str) -> Result<ModelConfig, String> {
+        let model = self.models.iter().find(|model| model.name == name);
+
+        match model {
+            Some(model) => Ok(model.clone()),
+            None => Err(format!("Model {} not found", name)),
+        }
+    }
+
+    /// Gets the model config as a mutable reference for the given model ID.
+    /// 
+    /// ## Arguments
+    /// 
+    /// * `name` - The name of the model to get the config for.
+    /// 
+    /// ## Returns
+    /// 
+    /// Result resolving to a mutable reference to the model config for the given model name.
+    pub fn get_model_mut(&mut self, name: &str) -> Result<&mut ModelConfig, CustomError> {
+        let model = self.models.iter_mut().find(|model| model.name == name);
+
+        match model {
+            Some(model) => Ok(model),
+            None => Err(CustomError::new(&format!("Model {} not found", name))),
+        }
+    }
+
+    /// Gets the api version used in the workspace.
+    /// 
+    /// ## Returns
+    /// 
+    /// The api version used in the workspace.
+    pub fn get_api_version(&self) -> u32 {
+        self.api_version
+    }
+
+    /// Gets the port used to connect to AnkiConnect.
+    /// 
+    /// ## Returns
+    /// 
+    /// The port used to connect to AnkiConnect.
+    pub fn get_port(&self) -> u32 {
+        self.port
     }
 }

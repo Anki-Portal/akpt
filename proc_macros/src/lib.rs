@@ -2,29 +2,31 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::{parse_macro_input, DeriveInput};
 
-#[proc_macro_derive(RequestError)]
-pub fn derive_request_error(input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as DeriveInput);
-
-    let ident = input.ident;
-
-    let expanded = quote! {
-        impl std::error::Error for #ident {}
-        impl crate::types::error::RequestError for #ident {}
+#[proc_macro_derive(ErrDisplay)]
+pub fn derive_err_display(item: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(item as DeriveInput);
+    let name = &input.ident;
+    let gen = quote! {
+        impl std::fmt::Display for #name {
+            fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+                write!(f, "{}", self.message)
+            }
+        }
+        impl std::error::Error for #name {
+            fn description(&self) -> &str {
+                self.message.as_str()
+            }
+        }
     };
-    
-    TokenStream::from(expanded)
+    gen.into()
 }
 
-#[proc_macro_derive(ResponseData)]
-pub fn derive_response_data(input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as DeriveInput);
-
-    let ident = input.ident;
-
-    let expanded = quote! {
-        impl crate::types::response::ResponseData for #ident {}
+#[proc_macro_derive(AnkiResponse)]
+pub fn derive_anki_response(item: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(item as DeriveInput);
+    let name = &input.ident;
+    let gen = quote! {
+        impl response::AnkiResponse for #name {}
     };
-    
-    TokenStream::from(expanded)
+    gen.into()
 }

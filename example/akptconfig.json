@@ -1,0 +1,16 @@
+{
+    "apiVersion": 6,
+    "port": 8765,
+    "models": [
+        {
+            "name": "example1",
+            "id": "1483883011648",
+            "cloze": false
+        },
+        {
+            "name": "example2",
+            "id": "1483883011649",
+            "cloze": false
+        }
+    ]
+}

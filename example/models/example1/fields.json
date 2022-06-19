@@ -1,0 +1,10 @@
+[
+    {
+        "name": "Front",
+        "type": "text"
+    },
+    {
+        "name": "Back",
+        "type": "text"
+    }
+]
